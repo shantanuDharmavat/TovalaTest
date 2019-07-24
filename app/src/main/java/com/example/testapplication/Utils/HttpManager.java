@@ -1,5 +1,7 @@
 package com.example.testapplication.Utils;
 
+import android.util.Log;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -33,6 +35,9 @@ public class HttpManager {
                 writer.flush();
             }
 
+            int responseCode = con.getResponseCode();
+            Log.d("Response Code",""+responseCode);
+
             StringBuilder sb = new StringBuilder();
             reader = new BufferedReader(new InputStreamReader(con.getInputStream()));
 
@@ -42,9 +47,10 @@ public class HttpManager {
                 sb.append(line + "\n");
             }
 
-            return sb.toString();
+            if (responseCode == 200) return sb.toString();
+            else return ""+responseCode;
 
-        } catch (Exception e) {
+        } catch (IOException e) {
             e.printStackTrace();
             return null;
         } finally {

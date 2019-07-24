@@ -9,13 +9,16 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import android.Manifest;
+import android.content.Context;
 import android.content.pm.PackageManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.Button;
 import android.widget.Toast;
 
 import com.example.testapplication.Utils.HttpManager;
+import com.example.testapplication.Utils.JsonValidator;
 import com.example.testapplication.Utils.RequestPackage;
 import com.example.testapplication.Adapter.RecyclerViewAdapter;
 import com.example.testapplication.Models.FoodMenuModel;
@@ -24,6 +27,9 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -61,6 +67,7 @@ public class MainActivity extends AppCompatActivity {
         recyclerView.setLayoutManager(layoutManager);
         recyclerView.setItemAnimator(new DefaultItemAnimator());
 
+
         requestData(BASE_URL);
     }
 
@@ -85,28 +92,36 @@ public class MainActivity extends AppCompatActivity {
         @Override
         protected void onPostExecute(String result) {
             try {
-                //We need to convert the string in result to a JSONArray
-                JSONArray jsonArray = new JSONArray(result);
 
-                //instantiating the ArrayList
-                menuList = new ArrayList<>();
-                //Now we can use the value in the mPriceTextView
-                for (int i = 0; i < jsonArray.length(); i++) {
-                    JSONObject obj = jsonArray.getJSONObject(i);
-                    FoodMenuModel model = new FoodMenuModel();
+                JsonValidator validator = new JsonValidator();
+                if (validator.validate(result)) {
+                    //We need to convert the string in result to a JSONArray
+                    JSONArray jsonArray = new JSONArray(result);
 
-                    //TODO check validity of json
-                    model.setTitle(obj.getString("title"));
-                    model.setImage(obj.getString("image_url"));
-                    model.setStory(obj.getString("story"));
-                    menuList.add(model);
+                    //instantiating the ArrayList
+                    menuList = new ArrayList<>();
+                    //Now we can use the value in the mPriceTextView
+                    for (int i = 0; i < jsonArray.length(); i++) {
+                        JSONObject obj = jsonArray.getJSONObject(i);
+                        FoodMenuModel model = new FoodMenuModel();
+
+                        //TODO check validity of json
+                        model.setTitle(obj.getString("title"));
+                        model.setImage(obj.getString("image_url"));
+                        model.setStory(obj.getString("story"));
+                        menuList.add(model);
+                    }
+                    mAdapter = new RecyclerViewAdapter(menuList);
+                    recyclerView.setAdapter(mAdapter);
+                } else {
+                    //Handling network exceptions
+                    Toast.makeText(getApplicationContext(),"Error " + result + " please try again",Toast.LENGTH_LONG).show();
                 }
-
-
-                mAdapter = new RecyclerViewAdapter(menuList);
-                recyclerView.setAdapter(mAdapter);
             } catch (JSONException e) {
+                Toast.makeText(getApplicationContext(),"Something went wrong, please try again",Toast.LENGTH_LONG).show();
                 e.printStackTrace();
+            } catch (NullPointerException nl){
+                Toast.makeText(getApplicationContext(),"Please check your internet connection",Toast.LENGTH_LONG).show();
             }
         }
     }
@@ -161,4 +176,22 @@ public class MainActivity extends AppCompatActivity {
         //make sure AsyncTask is destroyed with the activity to avoid memory leaks
         if (!downloader.isCancelled()) downloader.cancel(true);
     }
+
+    /*public static boolean hasActiveInternetConnection(Context context) {
+        if (isNetworkAvailable(context)) {
+            try {
+                HttpURLConnection urlc = (HttpURLConnection) (new URL("http://www.google.com").openConnection());
+                urlc.setRequestProperty("User-Agent", "Test");
+                urlc.setRequestProperty("Connection", "close");
+                urlc.setConnectTimeout(1500);
+                urlc.connect();
+                return (urlc.getResponseCode() == 200);
+            } catch (IOException e) {
+                Log.e(TAG, "Error checking internet connection", e);
+            }
+        } else {
+            Log.d(LOG_TAG, "No network available!");
+        }
+        return false;
+    }*/
 }
